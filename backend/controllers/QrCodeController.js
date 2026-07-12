@@ -37,7 +37,7 @@ export const listarQrCodes = async (req, res) => {
 
 export const verificarSorteado = async (req, res) => {
   try {
-    const sorteado = await QrCode.findOne({ owner: req.usuarioId, sorteado: true });
+    const sorteado = await QrCode.findOne({ owner: req.usuarioId, sorteado: true, viuTelaGanhador: false });
     res.status(200).json({ ganhou: !!sorteado, qrCode: sorteado || null });
   } catch (error) {
     res.status(500).json({ message: `${error.message} - Falha ao verificar sorteio` });

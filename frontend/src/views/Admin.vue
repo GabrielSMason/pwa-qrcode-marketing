@@ -2,10 +2,11 @@
 import { ref, onMounted } from 'vue'
 import api from '../api.js'
 
+const nome = localStorage.getItem('nome') || 'Admin'
 const usuarios = ref([])
 const carregando = ref(true)
 const expandido = ref(null)
-const sorteando = ref(null)
+const sorteando = ref(false)
 const feedback = ref('')
 
 async function carregarUsuarios() {
@@ -24,20 +25,20 @@ function toggleExpand(id) {
   expandido.value = expandido.value === id ? null : id
 }
 
-async function sortear(codigo) {
-  sorteando.value = codigo
+async function sortear() {
+  sorteando.value = true
   feedback.value = ''
   try {
-    const resposta = await api.post('/admin/sortear', { codigo })
-    const { dono, notificado } = resposta.data
+    const resposta = await api.post('/admin/sortear')
+    const { dono, notificado, codigo } = resposta.data
     feedback.value = notificado
-      ? `✅ "${codigo}" sorteado! Notificação enviada para ${dono}.`
-      : `✅ "${codigo}" sorteado! ${dono} não tem notificações ativas — verá ao abrir o app.`
+      ? `Código "${codigo}" sorteado! Notificação enviada para ${dono}.`
+      : `Código "${codigo}" sorteado! ${dono} não tem notificações ativas — verá ao abrir o app.`
     await carregarUsuarios()
   } catch (e) {
     feedback.value = e.response?.data?.message || 'Erro ao sortear.'
   } finally {
-    sorteando.value = null
+    sorteando.value = false
   }
 }
 
@@ -53,8 +54,16 @@ onMounted(carregarUsuarios)
 <template>
   <div class="container">
     <div class="admin-header">
-      <h1>Painel Admin</h1>
-      <button class="btn-sair" @click="sair">Sair</button>
+      <div>
+        <h1>Painel Admin</h1>
+        <p class="subtitulo">{{ nome }}</p>
+      </div>
+      <div class="header-acoes">
+        <button class="btn-sortear" :disabled="sorteando" @click="sortear">
+          {{ sorteando ? 'Sorteando...' : 'Realizar Sorteio' }}
+        </button>
+        <button class="btn-sair" @click="sair">Sair</button>
+      </div>
     </div>
 
     <div v-if="feedback" class="feedback" @click="feedback = ''">{{ feedback }}</div>
@@ -92,7 +101,6 @@ onMounted(carregarUsuarios)
                 <th>Cadastrado em</th>
                 <th>Status</th>
                 <th>Viu a tela</th>
-                <th>Ação</th>
               </tr>
             </thead>
             <tbody>
@@ -100,24 +108,13 @@ onMounted(carregarUsuarios)
                 <td><code>{{ q.codigo }}</code></td>
                 <td>{{ new Date(q.createdAt).toLocaleDateString('pt-BR') }}</td>
                 <td>
-                  <span v-if="q.sorteado" class="status-ganhou">🏆 Sorteado</span>
+                  <span v-if="q.sorteado" class="status-ganhou">Sorteado</span>
                   <span v-else class="status-normal">—</span>
                 </td>
                 <td>
                   <span v-if="!q.sorteado" class="status-normal">—</span>
                   <span v-else-if="q.viuTelaGanhador" class="viu-sim">✔ Viu</span>
                   <span v-else class="viu-nao">Ainda não</span>
-                </td>
-                <td>
-                  <button
-                    v-if="!q.sorteado"
-                    class="btn-sortear"
-                    :disabled="sorteando === q.codigo"
-                    @click.stop="sortear(q.codigo)"
-                  >
-                    {{ sorteando === q.codigo ? '...' : 'Sortear' }}
-                  </button>
-                  <span v-else class="status-normal">—</span>
                 </td>
               </tr>
             </tbody>
@@ -144,6 +141,25 @@ onMounted(carregarUsuarios)
 }
 
 .admin-header h1 { margin: 0; }
+.subtitulo { margin: 0.15rem 0 0; font-size: 0.85rem; color: #6b7280; }
+
+.header-acoes {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-sortear {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.btn-sortear:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .btn-sair {
   background: #ef4444;
@@ -165,11 +181,7 @@ onMounted(carregarUsuarios)
   font-size: 0.9rem;
 }
 
-.subtitulo {
-  color: #6b7280;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-}
+.subtitulo { color: #6b7280; margin-bottom: 1rem; font-size: 0.9rem; }
 
 .card-usuario {
   border: 1px solid #e5e7eb;
@@ -190,20 +202,11 @@ onMounted(carregarUsuarios)
 
 .card-header:hover { background: #f3f4f6; }
 
-.info-usuario {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
+.info-usuario { display: flex; flex-direction: column; gap: 0.15rem; }
 .nome { font-weight: 600; }
 .email { font-size: 0.82rem; color: #6b7280; }
 
-.badges {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
+.badges { display: flex; align-items: center; gap: 0.5rem; }
 
 .badge {
   background: #e5e7eb;
@@ -213,29 +216,14 @@ onMounted(carregarUsuarios)
   border-radius: 999px;
 }
 
-.badge-ganhou {
-  background: #d1fae5;
-  color: #065f46;
-}
-
+.badge-ganhou { background: #d1fae5; color: #065f46; }
 .seta { font-size: 0.75rem; color: #9ca3af; margin-left: 0.25rem; }
 
-.qrcodes-lista {
-  padding: 0.75rem 1.1rem;
-  border-top: 1px solid #e5e7eb;
-}
+.qrcodes-lista { padding: 0.75rem 1.1rem; border-top: 1px solid #e5e7eb; }
 
-.vazio, .vazio-inner {
-  color: #9ca3af;
-  font-size: 0.9rem;
-  padding: 0.5rem 0;
-}
+.vazio, .vazio-inner { color: #9ca3af; font-size: 0.9rem; padding: 0.5rem 0; }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 
 th {
   text-align: left;
@@ -245,30 +233,11 @@ th {
   border-bottom: 1px solid #e5e7eb;
 }
 
-td {
-  padding: 0.5rem 0.6rem;
-  border-bottom: 1px solid #f3f4f6;
-}
-
+td { padding: 0.5rem 0.6rem; border-bottom: 1px solid #f3f4f6; }
 tr.sorteado td { background: #f0fdf4; }
 
 .status-ganhou { color: #16a34a; font-weight: 600; }
 .status-normal { color: #d1d5db; }
 .viu-sim { color: #16a34a; font-size: 0.85rem; }
 .viu-nao { color: #f59e0b; font-size: 0.85rem; }
-
-.btn-sortear {
-  background: #2563eb;
-  color: white;
-  border: none;
-  padding: 0.3rem 0.8rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-
-.btn-sortear:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
 </style>

@@ -32,21 +32,17 @@ export const listarUsuarios = async (req, res) => {
 
 export const sortearQrCodeAdmin = async (req, res) => {
   try {
-    const { codigo } = req.body;
-
-    const qrCode = await QrCode.findOne({ codigo });
-    if (!qrCode) {
-      return res.status(404).json({ message: "QR-Code não encontrado" });
+    const disponiveis = await QrCode.find({ sorteado: false });
+    if (disponiveis.length === 0) {
+      return res.status(404).json({ message: "Nenhum QR-Code disponível para sortear" });
     }
 
-    if (qrCode.sorteado) {
-      return res.status(409).json({ message: "Este QR-Code já foi sorteado" });
-    }
+    const qrCode = disponiveis[Math.floor(Math.random() * disponiveis.length)];
 
     qrCode.sorteado = true;
     await qrCode.save();
 
-    const sorteio = await Sorteio.create({ codigoSorteado: codigo });
+    const sorteio = await Sorteio.create({ codigoSorteado: qrCode.codigo });
 
     const dono = await User.findById(qrCode.owner);
     let notificado = false;
@@ -86,6 +82,7 @@ export const sortearQrCodeAdmin = async (req, res) => {
 
     res.status(200).json({
       message: "QR-Code sorteado com sucesso",
+      codigo: qrCode.codigo,
       dono: dono?.nome,
       notificado,
     });

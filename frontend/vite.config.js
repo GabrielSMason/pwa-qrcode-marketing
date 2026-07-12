@@ -4,6 +4,7 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   plugins: [vue()],
   server: {
+    host: true,
     allowedHosts: ['.ngrok-free.dev', '.ngrok-free.app'],
     proxy: {
       '/api': {
