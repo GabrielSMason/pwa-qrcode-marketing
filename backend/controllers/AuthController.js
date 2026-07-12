@@ -28,10 +28,10 @@ const login = async (req, res) => {
     if (!valido) {
       return res.status(401).json({ message: "Senha incorreta" });
     }
-    const token = jwt.sign({ id: usuario._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: usuario._id, role: usuario.role }, process.env.JWT_SECRET, {
       expiresIn: "1d"
     });
-    return res.status(200).json({ message: "Login com sucesso", token });
+    return res.status(200).json({ message: "Login com sucesso", token, role: usuario.role });
   } catch (error) {
     res.status(500).json({ message: "Erro na hora de logar." });
   }

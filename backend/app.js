@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import conectaDataBase from "./config/dbConnect.js";
 import routes from "./routes/index.js";
+import { seed } from "./config/seed.js";
 
 const conexao = await conectaDataBase();
 
@@ -10,8 +11,9 @@ conexao.on("error", (erro) => {
     console.error("Erro de conexão", erro);
 });
 
-conexao.once("open", () => {
+conexao.once("open", async () => {
     console.log("Conexão com banco de dados feita com sucesso");
+    await seed();
 });
 
 const app = express();

@@ -1,5 +1,6 @@
 import QrCode from "../models/QrCode.js";
 import User from "../models/User.js";
+import Sorteio from "../models/Sorteio.js";
 
 export const cadastrarQrCode = async (req, res) => {
   try {
@@ -40,6 +41,44 @@ export const verificarSorteado = async (req, res) => {
     res.status(200).json({ ganhou: !!sorteado, qrCode: sorteado || null });
   } catch (error) {
     res.status(500).json({ message: `${error.message} - Falha ao verificar sorteio` });
+  }
+};
+
+export const verificarNaoSorteado = async (req, res) => {
+  try {
+    const usuario = await User.findById(req.usuarioId);
+    const ganhou = await QrCode.findOne({ owner: req.usuarioId, sorteado: true });
+    if (ganhou) return res.status(200).json({ temSorteio: false });
+
+    const filtro = usuario.ultimoSorteioVisto
+      ? { data: { $gt: usuario.ultimoSorteioVisto } }
+      : {};
+
+    const sorteio = await Sorteio.findOne(filtro).sort({ data: -1 });
+    if (!sorteio) return res.status(200).json({ temSorteio: false });
+
+    const dataFormatada = new Date(sorteio.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    res.status(200).json({ temSorteio: true, data: dataFormatada });
+  } catch (error) {
+    res.status(500).json({ message: `${error.message} - Falha ao verificar sorteio` });
+  }
+};
+
+export const marcarViuNaoSorteado = async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.usuarioId, { ultimoSorteioVisto: new Date() });
+    res.status(200).json({ message: "Marcado como visto" });
+  } catch (error) {
+    res.status(500).json({ message: `${error.message} - Falha ao marcar` });
+  }
+};
+
+export const marcarViuGanhador = async (req, res) => {
+  try {
+    await QrCode.updateMany({ owner: req.usuarioId, sorteado: true }, { viuTelaGanhador: true });
+    res.status(200).json({ message: "Marcado como visto" });
+  } catch (error) {
+    res.status(500).json({ message: `${error.message} - Falha ao marcar` });
   }
 };
 

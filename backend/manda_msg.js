@@ -15,8 +15,10 @@ if (!codigo || !mensagem) {
 async function main() {
     console.log(`Buscando dono do QR-Code ${codigo}...`);
 
-    const resposta = await fetch(`http://localhost:4000/qrcode/${codigo}/sortear`, {
-        method: "POST"
+    const resposta = await fetch(`http://localhost:4000/admin/sortear`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo })
     });
 
     if (resposta.status === 404) {
