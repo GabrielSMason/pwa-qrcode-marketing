@@ -10,6 +10,7 @@ const qrCodes = ref([])
 const notificacoesAtivadas = ref(false)
 const ganhou = ref(false)
 const qrCodeGanhador = ref(null)
+const sorteioNaoGanhado = ref(null)
 
 async function verificarSorteio() {
   try {
@@ -17,9 +18,19 @@ async function verificarSorteio() {
     if (resposta.data.ganhou) {
       ganhou.value = true
       qrCodeGanhador.value = resposta.data.qrCode
+      return
     }
   } catch (e) {
     console.error('Erro ao verificar sorteio:', e)
+  }
+
+  try {
+    const resposta = await api.get('/qrcode/nao-sorteado')
+    if (resposta.data.temSorteio) {
+      sorteioNaoGanhado.value = resposta.data.data
+    }
+  } catch (e) {
+    console.error('Erro ao verificar não sorteado:', e)
   }
 }
 
@@ -54,8 +65,27 @@ async function onCodigoLido(codigo) {
   }
 }
 
+async function fecharTelaGanhador() {
+  try {
+    await api.patch('/qrcode/viu-ganhador')
+  } catch (e) {
+    console.error('Erro ao marcar como visto:', e)
+  }
+  ganhou.value = false
+}
+
+async function fecharBannerNaoSorteado() {
+  try {
+    await api.patch('/qrcode/viu-nao-sorteado')
+  } catch (e) {
+    console.error('Erro ao marcar como visto:', e)
+  }
+  sorteioNaoGanhado.value = null
+}
+
 function sair() {
   localStorage.removeItem('token')
+  localStorage.removeItem('role')
   window.location.href = '/login'
 }
 
@@ -71,11 +101,16 @@ onMounted(() => {
       <h1>🎉 Parabéns! 🎉</h1>
       <p>O QR-Code "{{ qrCodeGanhador.codigo }}" foi sorteado!</p>
       <p>Entre em contato para receber seu prêmio.</p>
-      <button @click="ganhou = false">Continuar</button>
+      <button @click="fecharTelaGanhador">Continuar</button>
     </div>
 
     <div v-else>
       <h1>Bem-vindo!</h1>
+
+      <div v-if="sorteioNaoGanhado" class="banner-nao-sorteado">
+        <p>O sorteio do dia {{ sorteioNaoGanhado }} aconteceu e você não foi sorteado!</p>
+        <button @click="fecharBannerNaoSorteado">OK</button>
+      </div>
 
       <button v-if="!notificacoesAtivadas" @click="ativarNotificacoes">
         Ativar notificações
@@ -101,3 +136,33 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.banner-nao-sorteado {
+  background: #fef9c3;
+  border: 1px solid #fde047;
+  color: #713f12;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.banner-nao-sorteado p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.banner-nao-sorteado button {
+  background: #ca8a04;
+  color: white;
+  border: none;
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+</style>

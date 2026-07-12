@@ -19,7 +19,8 @@ async function fazerLogin() {
       password: password.value
     })
     localStorage.setItem('token', resposta.data.token)
-    router.push('/')
+    localStorage.setItem('role', resposta.data.role)
+    router.push(resposta.data.role === 'admin' ? '/admin' : '/')
   } catch (e) {
     erro.value = e.response?.data?.message || 'Erro ao fazer login'
   }

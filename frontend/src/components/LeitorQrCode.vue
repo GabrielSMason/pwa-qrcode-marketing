@@ -13,7 +13,7 @@ onMounted(() => {
             fps: 10,
             qrbox: 250,
             videoConstraints: {
-                facingMode: { exact: 'environment' }
+                facingMode: 'environment'
             }
         },
     false)
