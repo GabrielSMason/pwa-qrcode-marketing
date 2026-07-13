@@ -49,8 +49,8 @@ export const sortearQrCodeAdmin = async (req, res) => {
 
     if (dono?.subscription?.endpoint) {
       const payload = JSON.stringify({
-        title: "Promoção Biscoitos X",
-        body: "Parabéns! Você foi sorteado na promoção dos produtos X, entre em contato para receber seu prêmio!",
+        title: "Promoção Biscoitos",
+        body: "Parabéns! Você foi sorteado na promoção dos produtos, entre em contato para receber seu prêmio!",
       });
       try {
         await webpush.sendNotification(dono.subscription, payload);
@@ -62,7 +62,7 @@ export const sortearQrCodeAdmin = async (req, res) => {
 
     const dataFormatada = new Date(sorteio.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
     const payloadNaoSorteado = JSON.stringify({
-      title: "Promoção Biscoitos X",
+      title: "Promoção Biscoitos",
       body: `O sorteio do dia ${dataFormatada} aconteceu e você não foi sorteado!`,
     });
 
@@ -88,5 +88,66 @@ export const sortearQrCodeAdmin = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: `${error.message} - Falha ao sortear` });
+  }
+};
+
+export const notificarQrCodeAdmin = async (req, res) => {
+  try {
+    const { codigo } = req.params;
+    const qrCode = await QrCode.findOne({ codigo });
+
+    if (!qrCode) {
+      return res.status(404).json({ message: "QR-Code não encontrado" });
+    }
+
+    qrCode.sorteado = true;
+    await qrCode.save();
+
+    const sorteio = await Sorteio.create({ codigoSorteado: qrCode.codigo });
+
+    const dono = await User.findById(qrCode.owner);
+    let notificado = false;
+
+    if (dono?.subscription?.endpoint) {
+      const payload = JSON.stringify({
+        title: "Promoção Biscoitos",
+        body: req.body.mensagem || "Parabéns! Você foi sorteado na promoção dos produtos!",
+      });
+      try {
+        await webpush.sendNotification(dono.subscription, payload);
+        notificado = true;
+      } catch (e) {
+        console.error("Erro ao enviar push ao ganhador:", e.message);
+      }
+    }
+
+    const dataFormatada = new Date(sorteio.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    const payloadNaoSorteado = JSON.stringify({
+      title: "Promoção Biscoitos",
+      body: `O sorteio do dia ${dataFormatada} aconteceu e você não foi sorteado!`,
+    });
+
+    const outrosUsuarios = await User.find({
+      _id: { $ne: qrCode.owner },
+      "subscription.endpoint": { $exists: true },
+      role: { $ne: "admin" },
+    });
+
+    for (const usuario of outrosUsuarios) {
+      try {
+        await webpush.sendNotification(usuario.subscription, payloadNaoSorteado);
+      } catch (e) {
+        console.error(`Erro ao notificar ${usuario.email}:`, e.message);
+      }
+    }
+
+    res.status(200).json({
+      message: "QR-Code notificado com sucesso",
+      codigo: qrCode.codigo,
+      dono: dono?.nome,
+      notificado,
+    });
+  } catch (error) {
+    res.status(500).json({ message: `${error.message} - Falha ao notificar` });
   }
 };

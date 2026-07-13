@@ -3,7 +3,6 @@ import {
   cadastrarQrCode,
   listarQrCodes,
   verificarSorteado,
-  sortearQrCode,
   marcarViuGanhador,
   verificarNaoSorteado,
   marcarViuNaoSorteado
@@ -18,7 +17,6 @@ router
     .get("/qrcode/sorteado", authMiddleware, verificarSorteado)
     .patch("/qrcode/viu-ganhador", authMiddleware, marcarViuGanhador)
     .get("/qrcode/nao-sorteado", authMiddleware, verificarNaoSorteado)
-    .patch("/qrcode/viu-nao-sorteado", authMiddleware, marcarViuNaoSorteado)
-    .post("/qrcode/:codigo/sortear", sortearQrCode);
+    .patch("/qrcode/viu-nao-sorteado", authMiddleware, marcarViuNaoSorteado);
 
 export default router;

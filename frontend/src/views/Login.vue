@@ -45,7 +45,7 @@ async function fazerCadastro() {
 <template>
   <div class="container">
     <div class="header">
-      <h1>Promoção Biscoitos X</h1>
+      <h1>Promoção Biscoitos</h1>
     </div>
 
     <div v-if="erro" class="feedback-erro">{{ erro }}</div>

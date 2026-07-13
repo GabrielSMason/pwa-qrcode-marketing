@@ -5,6 +5,12 @@ import User from "../models/User.js";
 const registrar = async (req, res) => {
   try {
     const { nome, email, password } = req.body;
+
+    const jaExiste = await User.findOne({ email });
+    if (jaExiste) {
+      return res.status(409).json({ message: "Este e-mail já está cadastrado" });
+    }
+
     const passwordHash = await bcrypt.hash(password, 10);
     const novoUsuario = await User.create({
       nome,

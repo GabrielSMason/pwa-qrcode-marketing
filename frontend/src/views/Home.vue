@@ -14,6 +14,13 @@ const ganhou = ref(false)
 const qrCodeGanhador = ref(null)
 const sorteioNaoGanhado = ref(null)
 
+async function verificarNotificacoesAtivas() {
+  if (!('serviceWorker' in navigator)) return
+  const registration = await navigator.serviceWorker.ready
+  const subscription = await registration.pushManager.getSubscription()
+  notificacoesAtivadas.value = Notification.permission === 'granted' && !!subscription
+}
+
 async function verificarSorteio() {
   try {
     const resposta = await api.get('/qrcode/sorteado')
@@ -97,6 +104,7 @@ function sair() {
 onMounted(() => {
   carregarQrCodes()
   verificarSorteio()
+  verificarNotificacoesAtivas()
 })
 </script>
 

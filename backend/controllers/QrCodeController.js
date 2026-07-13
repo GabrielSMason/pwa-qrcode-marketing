@@ -81,27 +81,3 @@ export const marcarViuGanhador = async (req, res) => {
     res.status(500).json({ message: `${error.message} - Falha ao marcar` });
   }
 };
-
-export const sortearQrCode = async (req, res) => {
-  try {
-    const { codigo } = req.params;
-
-    const qrCode = await QrCode.findOne({ codigo });
-    if (!qrCode) {
-      return res.status(404).json({ message: "QR-Code não encontrado" });
-    }
-
-    qrCode.sorteado = true;
-    await qrCode.save();
-
-    const dono = await User.findById(qrCode.owner);
-
-    res.status(200).json({
-      message: "QR-Code marcado como sorteado",
-      qrCode,
-      subscription: dono?.subscription?.endpoint ? dono.subscription : null
-    });
-  } catch (error) {
-    res.status(500).json({ message: `${error.message} - Falha ao sortear QR-Code` });
-  }
-};
