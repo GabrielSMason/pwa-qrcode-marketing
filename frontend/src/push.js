@@ -34,7 +34,7 @@ export async function inscreverPush() {
 
     const token = localStorage.getItem('token');
 
-    await fetch('/api/subscribe', {
+    const resposta = await fetch('/api/subscribe', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -42,6 +42,17 @@ export async function inscreverPush() {
         },
         body: JSON.stringify(subscription)
     });
+
+    if (!resposta.ok) {
+        let mensagem = 'Falha ao salvar subscription no servidor';
+        try {
+            const erro = await resposta.json();
+            mensagem = erro.message || mensagem;
+        } catch (e) {
+            // resposta sem corpo JSON, mantém mensagem genérica
+        }
+        throw new Error(mensagem);
+    }
 
     console.log('Subscription enviada ao backend:', subscription);
 }

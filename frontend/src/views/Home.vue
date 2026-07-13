@@ -44,13 +44,21 @@ async function verificarSorteio() {
 
 async function ativarNotificacoes() {
   const permissao = await Notification.requestPermission()
-  if (permissao === 'granted') {
+  if (permissao !== 'granted') {
+    mensagem.value = 'Permissão de notificação negada.'
+    mensagemErro.value = true
+    return
+  }
+  try {
     await inscreverPush()
     notificacoesAtivadas.value = true
     mensagem.value = ''
-  } else {
-    mensagem.value = 'Permissão de notificação negada.'
+    mensagemErro.value = false
+  } catch (e) {
+    notificacoesAtivadas.value = false
+    mensagem.value = 'Não foi possível ativar as notificações. Tente novamente.'
     mensagemErro.value = true
+    console.error('Erro ao ativar notificações:', e)
   }
 }
 
@@ -147,8 +155,10 @@ onMounted(() => {
           <span class="card-titulo">Notificações</span>
           <span v-if="notificacoesAtivadas" class="badge badge-ok">Ativadas ✓</span>
         </div>
-        <div class="card-body" v-if="!notificacoesAtivadas">
-          <button @click="ativarNotificacoes">Ativar notificações</button>
+        <div class="card-body">
+          <button @click="ativarNotificacoes">
+            {{ notificacoesAtivadas ? 'Sincronizar notificações novamente' : 'Ativar notificações' }}
+          </button>
         </div>
       </div>
 
